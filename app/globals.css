@@ -11,18 +11,25 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
-    to bottom,
-    transparent,
-    rgb(var(--background-end-rgb))
-  )
-  rgb(var(--background-start-rgb));
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
   min-height: 100vh;
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
 }
 
 .shake {

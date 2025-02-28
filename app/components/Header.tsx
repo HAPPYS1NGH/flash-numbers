@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export default function Header() {
   return (
@@ -9,7 +9,6 @@ export default function Header() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-white">⚡ Flash Numbers</h1>
-            <span className="bg-blue-500 text-xs text-white px-2 py-1 rounded-full">Base Sepolia</span>
           </div>
           <div className="hidden sm:block">
             <p className="text-blue-200 text-sm">
@@ -21,4 +20,4 @@ export default function Header() {
       </div>
     </header>
   );
-} 
+}
