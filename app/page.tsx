@@ -1,4 +1,4 @@
-import NumberGame from './components/NumberGame';
+import { NumberGame } from "./components/NumberGame";
 
 export default function Home() {
   return (
@@ -16,19 +16,9 @@ export default function Home() {
                 <li>Beat the clock and compare speeds!</li>
               </ul>
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-800 mb-2">Transaction Flow</h3>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Initial tx: 0.01 ETH (regular)</li>
-                <li>Game starts after confirmation</li>
-                <li>Win tx: 0 ETH (flashbot)</li>
-                <li>Compare confirmation times!</li>
-              </ul>
-            </div>
           </div>
         </div>
       </div>
-      
       <NumberGame />
     </div>
   );
