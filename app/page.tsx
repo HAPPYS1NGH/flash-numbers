@@ -2,21 +2,10 @@ import { NumberGame } from "./components/NumberGame";
 
 export default function Home() {
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="text-center mb-8">
-        <h2 className="text-xl font-semibold mb-4">How to Play</h2>
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="grid gap-4 text-sm text-gray-600 md:grid-cols-2">
-            <div>
-              <h3 className="font-semibold text-gray-800 mb-2">Game Rules</h3>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Click numbers in order (1-9)</li>
-                <li>Complete within 15 seconds</li>
-                <li>Green = correct, shake = wrong</li>
-                <li>Beat the clock and compare speeds!</li>
-              </ul>
-            </div>
-          </div>
+    <div className="max-w-lg mx-auto px-4">
+      <div className="text-center mb-6">
+        <div className="inline-block bg-blue-50 rounded-lg px-4 py-2 text-sm text-blue-700">
+          Click numbers 1-9 in order • Beat the clock
         </div>
       </div>
       <NumberGame />

@@ -12,23 +12,27 @@ import {
   baseSepoliaClient,
   flashblockClient,
 } from "../lib/web3Config";
-// Disable SSR for this component
+
 
 export const NumberGame = () => {
   const [mounted, setMounted] = useState(false);
-  const { address: userAddress, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const [numbers, setNumbers] = useState<number[]>([]);
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
   const [initialTxHash, setInitialTxHash] = useState<Hash>();
   const [winTxHash, setWinTxHash] = useState<Hash>();
-  const [timeElapsed, setTimeElapsed] = useState(0);
   const [gameTimer, setGameTimer] = useState(0);
-  const [message, setMessage] = useState("Connect wallet to play");
-  const [metrics, setMetrics] = useState({
+  const [gameInterval, setGameInterval] = useState<NodeJS.Timeout | null>(null);
+  const [gameStats, setGameStats] = useState({
+    gamePlayTime: 0,
     initialTxTime: 0,
     winTxTime: 0,
+    potentialNormalTx: 0,
+    potentialFlashTx: 0,
   });
+  const [message, setMessage] = useState("Connect wallet to play");
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
 
   const { sendTransactionAsync: sendInitialTx } = useSendTransaction();
   const { sendTransactionAsync: sendWinTx } = useSendTransaction();
@@ -36,19 +40,17 @@ export const NumberGame = () => {
   // Handle mounting
   useEffect(() => {
     setMounted(true);
-  }, []);
+    // Cleanup any existing interval on unmount
+    return () => {
+      if (gameInterval) {
+        clearInterval(gameInterval);
+      }
+    };
+  }, [gameInterval]);
 
-  // Monitor initial transaction
-  const { isLoading: isInitialTxLoading, isSuccess: isInitialTxSuccess } =
-    useWaitForTransactionReceipt({
-      hash: initialTxHash,
-    });
-
-  // Monitor win transaction
-  const { isLoading: isWinTxLoading, isSuccess: isWinTxSuccess } =
-    useWaitForTransactionReceipt({
-      hash: winTxHash,
-    });
+  // Monitor transactions
+  const { isLoading: isInitialTxLoading } = useWaitForTransactionReceipt({ hash: initialTxHash });
+  const { isLoading: isWinTxLoading } = useWaitForTransactionReceipt({ hash: winTxHash });
 
   // Function to poll for transaction confirmations
   const pollForConfirmation = useCallback(
@@ -62,14 +64,16 @@ export const NumberGame = () => {
           if (receipt) {
             const confirmationTime = Date.now() - startTime;
             if (isFlashbot) {
-              setMetrics((prev) => ({
+              setGameStats(prev => ({
                 ...prev,
                 winTxTime: confirmationTime / 10,
+                potentialFlashTx: Math.floor(prev.gamePlayTime*10 / confirmationTime),
               }));
             } else {
-              setMetrics((prev) => ({
+              setGameStats(prev => ({
                 ...prev,
                 initialTxTime: confirmationTime,
+                potentialNormalTx: Math.floor(prev.gamePlayTime / confirmationTime),
               }));
             }
             return receipt;
@@ -105,7 +109,6 @@ export const NumberGame = () => {
       setInitialTxHash(txHash);
       setMessage("Waiting for initial transaction confirmation...");
 
-      // Start polling for initial transaction
       await pollForConfirmation(txHash);
 
       // Initialize game after confirmation
@@ -117,12 +120,19 @@ export const NumberGame = () => {
       setGameStarted(true);
       setGameTimer(0);
       setMessage("Select numbers in order from 1 to 9!");
+      setShowTimeoutModal(false);
 
-      const gameInterval = setInterval(() => {
+      // Clear any existing interval
+      if (gameInterval) {
+        clearInterval(gameInterval);
+      }
+
+      // Start new interval
+      const interval = setInterval(() => {
         setGameTimer((prev) => {
           if (prev >= 15) {
-            clearInterval(gameInterval);
-            setMessage("Time's up! Try again!");
+            clearInterval(interval);
+            setShowTimeoutModal(true);
             setGameStarted(false);
             return prev;
           }
@@ -130,7 +140,7 @@ export const NumberGame = () => {
         });
       }, 100);
 
-      return () => clearInterval(gameInterval);
+      setGameInterval(interval);
     } catch (error) {
       console.error("Error starting game:", error);
       setMessage("Error starting game. Please try again.");
@@ -147,8 +157,14 @@ export const NumberGame = () => {
       setSelectedNumbers(newSelected);
 
       if (newSelected.length === 9) {
+        // Game won - clear interval and update state
+        if (gameInterval) {
+          clearInterval(gameInterval);
+          setGameInterval(null);
+        }
         setGameStarted(false);
-        setTimeElapsed(gameTimer);
+        const finalTime = gameTimer;
+        setGameStats(prev => ({ ...prev, gamePlayTime: finalTime * 1000 })); // Convert to ms
         setMessage("Sending win transaction...");
 
         try {
@@ -159,10 +175,9 @@ export const NumberGame = () => {
 
           setWinTxHash(txHash);
 
-          // Start polling for win transaction
           await pollForConfirmation(txHash, true);
 
-          setMessage(`Game completed! Time: ${gameTimer.toFixed(1)}s`);
+          setMessage("Game completed!");
         } catch (error) {
           console.error("Error sending win transaction:", error);
           setMessage("Error sending win transaction. Game completed though!");
@@ -182,13 +197,13 @@ export const NumberGame = () => {
   if (!mounted) return null;
 
   return (
-    <div className="max-w-lg mx-auto p-4">
-      <div className="text-center mb-4">
+    <div className="max-w-lg mx-auto p-6 bg-white rounded-xl shadow-lg">
+      <div className="text-center mb-6">
         <p className="text-lg font-semibold mb-2">{message}</p>
         {gameStarted && (
-          <p className="text-xl font-bold text-blue-600">
-            Time: {gameTimer.toFixed(1)}s
-          </p>
+          <div className="text-2xl font-bold text-blue-600">
+            {gameTimer.toFixed(1)}s
+          </div>
         )}
       </div>
 
@@ -198,13 +213,13 @@ export const NumberGame = () => {
         !isWinTxLoading && (
           <button
             onClick={startGame}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mb-4"
+            className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mb-6 font-bold"
           >
             Start Game
           </button>
         )}
 
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         {numbers.map((number) => (
           <button
             key={number}
@@ -216,7 +231,7 @@ export const NumberGame = () => {
               ${
                 selectedNumbers.includes(number)
                   ? "bg-green-500 text-white"
-                  : "bg-white hover:bg-gray-100"
+                  : "bg-white hover:bg-gray-100 border-2 border-gray-200"
               }
               ${!gameStarted && "opacity-50 cursor-not-allowed"}
             `}
@@ -226,13 +241,49 @@ export const NumberGame = () => {
         ))}
       </div>
 
-      {(metrics.initialTxTime > 0 || metrics.winTxTime > 0) && (
-        <div className="mt-4 p-4 bg-gray-100 rounded-lg">
-          <h3 className="font-semibold mb-2">Transaction Metrics:</h3>
-          <p>Initial Transaction: {metrics.initialTxTime}ms</p>
-          {metrics.winTxTime > 0 && (
-            <p>Win Transaction: {metrics.winTxTime}ms</p>
-          )}
+      {gameStats.gamePlayTime > 0 && (
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-3 bg-white rounded-lg shadow">
+              <div className="text-sm text-gray-600">Game Time</div>
+              <div className="text-xl font-bold text-blue-600">
+                {(gameStats.gamePlayTime / 1000).toFixed(1)}s
+              </div>
+            </div>
+            <div className="text-center p-3 bg-white rounded-lg shadow">
+              <div className="text-sm text-gray-600">Transactions</div>
+              <div className="text-xl font-bold text-green-600">
+                {(gameStats.initialTxTime/gameStats.winTxTime).toFixed(0)}x faster
+              </div>
+            </div>
+            <div className="text-center p-3 bg-white rounded-lg shadow">
+              <div className="text-sm text-gray-600">Normal Tx</div>
+              <div className="text-lg font-semibold">
+                {gameStats.initialTxTime}ms
+              </div>
+            </div>
+            <div className="text-center p-3 bg-white rounded-lg shadow">
+              <div className="text-sm text-gray-600">Flash Tx</div>
+              <div className="text-lg font-semibold">
+                {gameStats.winTxTime}ms
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTimeoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm mx-4 text-center">
+            <div className="text-2xl font-bold text-red-500 mb-4">Time is Up! 🕒</div>
+            <p className="text-gray-600 mb-6">You need to be faster than that!</p>
+            <button
+              onClick={startGame}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       )}
     </div>
