@@ -9,22 +9,27 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@coinbase/onchainkit": "latest",
-    "next": "14.2.15",
+    "@rainbow-me/rainbowkit": "^2.2.4",
+    "@tanstack/react-query": "^5.66.11",
+    "@web3modal/wagmi": "^4.0.5",
+    "ethers": "^6.11.1",
+    "next": "14.1.0",
     "react": "^18",
     "react-dom": "^18",
-    "@tanstack/react-query": "^5",
-    "viem": "^2.17.4",
-    "wagmi": "^2.11.0"
+    "viem": "^2.7.8",
+    "wagmi": "^2.5.7",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/ws": "^8.5.10",
+    "autoprefixer": "^10.4.20",
     "eslint": "^8",
-    "eslint-config-next": "14.2.15",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "eslint-config-next": "14.1.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5"
   }
 }
